@@ -169,6 +169,7 @@ export default function Home() {
             <TimelineView
               trips={trips}
               engineers={engineers}
+              availabilities={availabilities}
               currentDate={currentDate}
               viewType={timelineView === 'day' ? 'month' : (timelineView as 'week' | 'month' | 'quarter' | 'year')}
             />

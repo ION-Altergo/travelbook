@@ -12,22 +12,25 @@ import {
   endOfQuarter,
   startOfYear,
   endOfYear,
-  isSameDay 
+  isSameDay,
+  isWithinInterval
 } from 'date-fns';
-import { Trip, Engineer } from '@/types';
+import { Trip, Engineer, Availability, AVAILABILITY_CONFIG } from '@/types';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
 interface TimelineViewProps {
   trips: Trip[];
   engineers: Engineer[];
+  availabilities: Availability[];
   currentDate?: Date;
   viewType?: 'week' | 'month' | 'quarter' | 'year';
 }
 
 export function TimelineView({ 
   trips, 
-  engineers, 
+  engineers,
+  availabilities,
   currentDate = new Date(),
   viewType = 'month' 
 }: TimelineViewProps) {
@@ -106,6 +109,23 @@ export function TimelineView({
     'in-progress': 'bg-green-200 text-green-700 border-green-300',
     completed: 'bg-gray-100 text-gray-500 border-gray-200',
     cancelled: 'bg-red-100 text-red-500 border-red-200',
+  };
+
+  // Get availability status for engineer on a specific date
+  const getAvailabilityForDate = (engineerId: string, date: Date) => {
+    const engineerAvails = availabilities.filter(a => a.engineerId === engineerId);
+    
+    for (const avail of engineerAvails) {
+      const availStart = new Date(avail.startDate);
+      const availEnd = new Date(avail.endDate);
+      
+      // Check if date falls within availability period
+      if (isWithinInterval(date, { start: availStart, end: availEnd })) {
+        return avail.status;
+      }
+    }
+    
+    return null;
   };
 
   // Date format based on view type
@@ -188,20 +208,48 @@ export function TimelineView({
                   {engineerTrips.map(({ trip, startCol, endCol }) => {
                     const width = ((endCol - startCol + 1) / days.length) * 100;
                     const left = (startCol / days.length) * 100;
+                    
+                    // Check for availability status during this trip
+                    const tripStart = new Date(trip.startDate);
+                    const availStatus = getAvailabilityForDate(trip.engineerId, tripStart);
+                    const availConfig = availStatus ? AVAILABILITY_CONFIG[availStatus] : null;
+                    
+                    // Determine if this is a conflict (trip during unavailable status)
+                    const isConflict = availStatus === 'on-break' || availStatus === 'cannot-travel';
 
                     return (
                       <div
                         key={trip.id}
                         className={cn(
-                          "absolute top-2 h-10 rounded px-2 py-1 text-xs font-medium border-2 cursor-pointer transition-all hover:shadow-md hover:z-10",
-                          statusColors[trip.status]
+                          "absolute top-2 h-10 rounded px-2 py-1 text-xs font-medium cursor-pointer transition-all hover:shadow-md hover:z-10 relative",
+                          statusColors[trip.status],
+                          isConflict && "ring-2 ring-offset-1"
                         )}
                         style={{
                           left: `${left}%`,
                           width: `${width}%`,
+                          ...(availConfig && {
+                            borderLeft: `4px solid ${availConfig.color}`,
+                            borderRight: `4px solid ${availConfig.color}`,
+                          }),
+                          ...(isConflict && {
+                            ringColor: availConfig?.color,
+                          }),
                         }}
-                        title={`${trip.projectName} - ${trip.location}\n${format(new Date(trip.startDate), 'MMM d')} - ${format(new Date(trip.endDate), 'MMM d, yyyy')}`}
+                        title={`${trip.projectName} - ${trip.location}\n${format(new Date(trip.startDate), 'MMM d')} - ${format(new Date(trip.endDate), 'MMM d, yyyy')}${availStatus ? `\n⚠️ Status: ${availConfig?.label}` : ''}`}
                       >
+                        {/* Availability indicator */}
+                        {availConfig && (
+                          <div
+                            className={cn(
+                              "absolute -top-1 -right-1 w-3 h-3 rounded-full border-2 border-white shadow-sm",
+                              isConflict && "animate-pulse"
+                            )}
+                            style={{ backgroundColor: availConfig.color }}
+                            title={availConfig.label}
+                          />
+                        )}
+                        
                         <div className="truncate font-semibold">{trip.projectName}</div>
                         <div className="truncate text-[10px] opacity-80">{trip.location}</div>
                       </div>
@@ -214,14 +262,32 @@ export function TimelineView({
         </div>
 
         {/* Legend */}
-        <div className="mt-6 flex items-center gap-4 text-xs">
-          <span className="text-muted-foreground font-medium">Status:</span>
-          {Object.entries(statusColors).map(([status, colorClass]) => (
-            <div key={status} className="flex items-center gap-1">
-              <div className={cn("w-3 h-3 rounded", colorClass)} />
-              <span className="capitalize">{status}</span>
-            </div>
-          ))}
+        <div className="mt-6 space-y-3">
+          <div className="flex items-center gap-4 text-xs flex-wrap">
+            <span className="text-muted-foreground font-medium">Trip Status:</span>
+            {Object.entries(statusColors).map(([status, colorClass]) => (
+              <div key={status} className="flex items-center gap-1">
+                <div className={cn("w-3 h-3 rounded", colorClass)} />
+                <span className="capitalize">{status}</span>
+              </div>
+            ))}
+          </div>
+          
+          <div className="flex items-center gap-4 text-xs flex-wrap">
+            <span className="text-muted-foreground font-medium">Availability:</span>
+            {Object.entries(AVAILABILITY_CONFIG).map(([key, config]) => (
+              <div key={key} className="flex items-center gap-1">
+                <div 
+                  className="w-3 h-3 rounded-full" 
+                  style={{ backgroundColor: config.color }}
+                />
+                <span>{config.label}</span>
+              </div>
+            ))}
+            <span className="text-muted-foreground italic ml-2">
+              (Colored border/dot on trips = availability status)
+            </span>
+          </div>
         </div>
       </div>
     </div>
