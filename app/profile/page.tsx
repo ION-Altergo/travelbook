@@ -2,57 +2,100 @@
 
 import { useState } from 'react';
 import { format } from 'date-fns';
-import { Plus, Calendar as CalendarIcon, Trash2, User } from 'lucide-react';
+import { Plus, User, Trash2 } from 'lucide-react';
 import { useData } from '@/contexts/data-context';
-import { Availability, AVAILABILITY_CONFIG, AvailabilityStatus } from '@/types';
+import { Availability, AVAILABILITY_CONFIG } from '@/types';
+import { AvailabilitySidebar } from '@/components/availability-sidebar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 export default function ProfilePage() {
-  const { currentUser, engineers, availabilities, addAvailability, deleteAvailability } = useData();
+  const { currentUser, engineers, availabilities, addAvailability, updateAvailability, deleteAvailability } = useData();
   const currentEngineer = engineers.find(e => e.email === currentUser?.email);
-
-  const [isAdding, setIsAdding] = useState(false);
-  const [status, setStatus] = useState<AvailabilityStatus>('available');
-  const [startDate, setStartDate] = useState<Date | undefined>(new Date());
-  const [endDate, setEndDate] = useState<Date | undefined>(new Date());
-  const [notes, setNotes] = useState('');
+  
+  const [selectedAvailability, setSelectedAvailability] = useState<Availability | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   // Filter availabilities for current user
   const userAvailabilities = currentEngineer 
-    ? availabilities.filter(a => a.engineerId === currentEngineer.id)
+    ? availabilities
+        .filter(a => a.engineerId === currentEngineer.id)
+        .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
     : [];
 
-  const handleAdd = () => {
-    if (!currentEngineer || !startDate || !endDate) return;
+  const handleAddAvailability = () => {
+    if (!currentEngineer) return;
 
-    addAvailability({
+    // Create a default availability
+    const defaultAvailability: Omit<Availability, 'id'> = {
       engineerId: currentEngineer.id,
-      status,
-      startDate,
-      endDate,
-      notes,
-    });
-
-    // Reset form
-    setStatus('available');
-    setStartDate(new Date());
-    setEndDate(new Date());
-    setNotes('');
-    setIsAdding(false);
+      status: 'available',
+      startDate: new Date(),
+      endDate: new Date(),
+      notes: '',
+    };
+    
+    // Add it and get the ID
+    const newAvailabilityId = `avail-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const newAvailability: Availability = { ...defaultAvailability, id: newAvailabilityId };
+    
+    addAvailability(defaultAvailability);
+    
+    // Open sidebar with the new availability
+    setSelectedAvailability(newAvailability);
+    setIsSidebarOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm('Are you sure you want to delete this availability period?')) {
-      deleteAvailability(id);
+  const handleRowClick = (availability: Availability) => {
+    setSelectedAvailability(availability);
+    setIsSidebarOpen(true);
+  };
+
+  const handleSave = (updatedAvailability: Availability) => {
+    updateAvailability(updatedAvailability.id, updatedAvailability);
+  };
+
+  const handleDelete = (availabilityId: string) => {
+    deleteAvailability(availabilityId);
+    setIsSidebarOpen(false);
+    setSelectedIds(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(availabilityId);
+      return newSet;
+    });
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedIds(new Set(userAvailabilities.map(a => a.id)));
+    } else {
+      setSelectedIds(new Set());
+    }
+  };
+
+  const handleSelectOne = (availabilityId: string, checked: boolean) => {
+    setSelectedIds(prev => {
+      const newSet = new Set(prev);
+      if (checked) {
+        newSet.add(availabilityId);
+      } else {
+        newSet.delete(availabilityId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleDeleteSelected = () => {
+    if (selectedIds.size === 0) return;
+    
+    if (confirm(`Are you sure you want to delete ${selectedIds.size} availability period(s)?`)) {
+      selectedIds.forEach(id => deleteAvailability(id));
+      setSelectedIds(new Set());
     }
   };
 
@@ -126,120 +169,25 @@ export default function ProfilePage() {
                 Set your availability periods to let your team know when you can travel
               </CardDescription>
             </div>
-            {!isAdding && (
-              <Button onClick={() => setIsAdding(true)}>
+            <div className="flex gap-2">
+              {selectedIds.size > 0 && (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={handleDeleteSelected}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete ({selectedIds.size})
+                </Button>
+              )}
+              <Button onClick={handleAddAvailability}>
                 <Plus className="mr-2 h-4 w-4" />
                 Add Period
               </Button>
-            )}
+            </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Add Form */}
-          {isAdding && (
-            <Card className="bg-muted/30">
-              <CardContent className="pt-6 space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Status</Label>
-                    <Select
-                      value={status}
-                      onValueChange={(value: AvailabilityStatus) => setStatus(value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(AVAILABILITY_CONFIG).map(([key, config]) => (
-                          <SelectItem key={key} value={key}>
-                            <div className="flex items-center gap-2">
-                              <div 
-                                className="w-3 h-3 rounded-full" 
-                                style={{ backgroundColor: config.color }}
-                              />
-                              {config.label}
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Start Date</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !startDate && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {startDate ? format(startDate, 'PPP') : 'Pick a date'}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={startDate}
-                          onSelect={setStartDate}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>End Date</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !endDate && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {endDate ? format(endDate, 'PPP') : 'Pick a date'}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={endDate}
-                          onSelect={setEndDate}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-
-                  <div className="space-y-2 sm:col-span-2">
-                    <Label>Notes (Optional)</Label>
-                    <Input
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
-                      placeholder="e.g., Family vacation, training period..."
-                    />
-                  </div>
-                </div>
-
-                <div className="flex gap-2">
-                  <Button onClick={handleAdd}>
-                    Add Availability Period
-                  </Button>
-                  <Button variant="outline" onClick={() => {
-                    setIsAdding(false);
-                    setNotes('');
-                  }}>
-                    Cancel
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
           {/* Status Legend */}
           <div>
             <Label className="text-sm font-medium mb-3 block">Status Types</Label>
@@ -256,70 +204,113 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          {/* Availability List */}
+          {/* Availability Table */}
           {userAvailabilities.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              No availability periods set. Add one to let your team know your status.
+            <div className="text-center py-12 text-muted-foreground border rounded-lg bg-muted/20">
+              <p className="mb-2">No availability periods set</p>
+              <p className="text-sm">Add one to let your team know your status</p>
             </div>
           ) : (
             <Card className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-[50px]">
+                      <Checkbox
+                        checked={selectedIds.size === userAvailabilities.length && userAvailabilities.length > 0}
+                        onCheckedChange={handleSelectAll}
+                      />
+                    </TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Start Date</TableHead>
                     <TableHead>End Date</TableHead>
+                    <TableHead>Duration</TableHead>
                     <TableHead>Notes</TableHead>
-                    <TableHead className="w-[100px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {userAvailabilities
-                    .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
-                    .map((availability) => {
-                      const config = AVAILABILITY_CONFIG[availability.status];
-                      return (
-                        <TableRow key={availability.id}>
-                          <TableCell>
-                            <Badge 
-                              style={{ 
-                                backgroundColor: `${config.color}20`,
-                                color: config.color,
-                                borderColor: config.color
-                              }}
-                              className="border"
-                            >
-                              {config.label}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-sm">
-                            {format(new Date(availability.startDate), 'MMM d, yyyy')}
-                          </TableCell>
-                          <TableCell className="text-sm">
-                            {format(new Date(availability.endDate), 'MMM d, yyyy')}
-                          </TableCell>
-                          <TableCell className="text-sm text-muted-foreground">
-                            {availability.notes || '—'}
-                          </TableCell>
-                          <TableCell>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDelete(availability.id)}
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
+                  {userAvailabilities.map((availability) => {
+                    const config = AVAILABILITY_CONFIG[availability.status];
+                    const startDate = new Date(availability.startDate);
+                    const endDate = new Date(availability.endDate);
+                    const durationDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+                    
+                    return (
+                      <TableRow 
+                        key={availability.id}
+                        className="hover:bg-muted/50"
+                      >
+                        <TableCell onClick={(e) => e.stopPropagation()}>
+                          <Checkbox
+                            checked={selectedIds.has(availability.id)}
+                            onCheckedChange={(checked) => handleSelectOne(availability.id, checked as boolean)}
+                          />
+                        </TableCell>
+                        <TableCell 
+                          className="cursor-pointer"
+                          onClick={() => handleRowClick(availability)}
+                        >
+                          <Badge 
+                            style={{ 
+                              backgroundColor: `${config.color}20`,
+                              color: config.color,
+                              borderColor: config.color
+                            }}
+                            className="border"
+                          >
+                            {config.label}
+                          </Badge>
+                        </TableCell>
+                        <TableCell 
+                          className="text-sm cursor-pointer"
+                          onClick={() => handleRowClick(availability)}
+                        >
+                          {format(startDate, 'MMM d, yyyy')}
+                        </TableCell>
+                        <TableCell 
+                          className="text-sm cursor-pointer"
+                          onClick={() => handleRowClick(availability)}
+                        >
+                          {format(endDate, 'MMM d, yyyy')}
+                        </TableCell>
+                        <TableCell 
+                          className="text-sm cursor-pointer"
+                          onClick={() => handleRowClick(availability)}
+                        >
+                          {durationDays} {durationDays === 1 ? 'day' : 'days'}
+                        </TableCell>
+                        <TableCell 
+                          className="text-sm text-muted-foreground cursor-pointer max-w-[200px] truncate"
+                          onClick={() => handleRowClick(availability)}
+                        >
+                          {availability.notes || '—'}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </Card>
           )}
         </CardContent>
       </Card>
+
+      {/* Sidebar */}
+      <AvailabilitySidebar
+        availability={selectedAvailability}
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+        onSave={handleSave}
+        onDelete={handleDelete}
+      />
+
+      {/* Overlay when sidebar is open */}
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/20 z-30 hidden md:block"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
     </div>
   );
 }
-

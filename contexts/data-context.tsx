@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, ReactNode, useMemo } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useMemo, useEffect } from 'react';
 import { Trip, Expense, Engineer, Availability } from '@/types';
 import { 
   engineers as initialEngineers, 
@@ -84,10 +84,63 @@ export function DataProvider({
     return teamEngineers;
   }, [currentUser]);
 
-  const [engineers, setEngineers] = useState<Engineer[]>(initializeEngineers);
-  const [trips, setTrips] = useState<Trip[]>(initialTrips);
-  const [expenses, setExpenses] = useState<Expense[]>(initialExpenses);
-  const [availabilities, setAvailabilities] = useState<Availability[]>([]);
+  // Load from localStorage or use defaults
+  const [engineers, setEngineers] = useState<Engineer[]>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('travelbook-engineers');
+      return stored ? JSON.parse(stored) : initializeEngineers;
+    }
+    return initializeEngineers;
+  });
+
+  const [trips, setTrips] = useState<Trip[]>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('travelbook-trips');
+      return stored ? JSON.parse(stored) : initialTrips;
+    }
+    return initialTrips;
+  });
+
+  const [expenses, setExpenses] = useState<Expense[]>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('travelbook-expenses');
+      return stored ? JSON.parse(stored) : initialExpenses;
+    }
+    return initialExpenses;
+  });
+
+  const [availabilities, setAvailabilities] = useState<Availability[]>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('travelbook-availabilities');
+      return stored ? JSON.parse(stored) : [];
+    }
+    return [];
+  });
+
+  // Persist to localStorage whenever data changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('travelbook-engineers', JSON.stringify(engineers));
+    }
+  }, [engineers]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('travelbook-trips', JSON.stringify(trips));
+    }
+  }, [trips]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('travelbook-expenses', JSON.stringify(expenses));
+    }
+  }, [expenses]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('travelbook-availabilities', JSON.stringify(availabilities));
+    }
+  }, [availabilities]);
 
   const addTrip = (trip: Omit<Trip, 'id'>) => {
     const newTrip: Trip = {
