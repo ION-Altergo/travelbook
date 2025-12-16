@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { format } from 'date-fns';
-import { Plus, Search } from 'lucide-react';
+import { Plus, Search, Trash2 } from 'lucide-react';
 import { getTripDuration, getEngineerById, getExpensesByTrip } from '@/lib/data';
 import { useData } from '@/contexts/data-context';
 import { Trip } from '@/types';
@@ -10,6 +10,7 @@ import { TripSidebar } from '@/components/trip-sidebar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
@@ -20,6 +21,7 @@ export default function TripsPage() {
   const [engineerFilter, setEngineerFilter] = useState<string>('all');
   const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   // Find engineer matching current user
   const currentEngineer = engineers.find(e => e.email === currentUser?.email);
@@ -79,6 +81,40 @@ export default function TripsPage() {
   const handleDelete = (tripId: string) => {
     deleteTrip(tripId);
     setIsSidebarOpen(false);
+    setSelectedIds(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(tripId);
+      return newSet;
+    });
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedIds(new Set(filteredTrips.map(t => t.id)));
+    } else {
+      setSelectedIds(new Set());
+    }
+  };
+
+  const handleSelectOne = (tripId: string, checked: boolean) => {
+    setSelectedIds(prev => {
+      const newSet = new Set(prev);
+      if (checked) {
+        newSet.add(tripId);
+      } else {
+        newSet.delete(tripId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleDeleteSelected = () => {
+    if (selectedIds.size === 0) return;
+    
+    if (confirm(`Are you sure you want to delete ${selectedIds.size} trip(s)?`)) {
+      selectedIds.forEach(id => deleteTrip(id));
+      setSelectedIds(new Set());
+    }
   };
 
   return (
@@ -88,13 +124,23 @@ export default function TripsPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Trips</h1>
           <p className="text-muted-foreground">
-            Manage on-site engineering trips
+            {selectedIds.size > 0 
+              ? `${selectedIds.size} trip(s) selected`
+              : 'Manage on-site engineering trips'}
           </p>
         </div>
-        <Button onClick={handleAddTrip}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Trip
-        </Button>
+        <div className="flex gap-2">
+          {selectedIds.size > 0 && (
+            <Button onClick={handleDeleteSelected} variant="destructive">
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete Selected ({selectedIds.size})
+            </Button>
+          )}
+          <Button onClick={handleAddTrip}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Trip
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -141,6 +187,12 @@ export default function TripsPage() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-[50px]">
+                <Checkbox
+                  checked={selectedIds.size === filteredTrips.length && filteredTrips.length > 0}
+                  onCheckedChange={handleSelectAll}
+                />
+              </TableHead>
               <TableHead>Project</TableHead>
               <TableHead>Team Member</TableHead>
               <TableHead>Location</TableHead>
@@ -153,7 +205,7 @@ export default function TripsPage() {
           <TableBody>
             {filteredTrips.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                   No trips found. Click "Add Trip" to create one.
                 </TableCell>
               </TableRow>
@@ -165,11 +217,24 @@ export default function TripsPage() {
                 return (
                   <TableRow
                     key={trip.id}
-                    className="cursor-pointer hover:bg-muted/50"
-                    onClick={() => handleRowClick(trip)}
+                    className="hover:bg-muted/50"
                   >
-                    <TableCell className="font-medium">{trip.projectName}</TableCell>
-                    <TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        checked={selectedIds.has(trip.id)}
+                        onCheckedChange={(checked) => handleSelectOne(trip.id, checked as boolean)}
+                      />
+                    </TableCell>
+                    <TableCell 
+                      className="font-medium cursor-pointer"
+                      onClick={() => handleRowClick(trip)}
+                    >
+                      {trip.projectName}
+                    </TableCell>
+                    <TableCell 
+                      className="cursor-pointer"
+                      onClick={() => handleRowClick(trip)}
+                    >
                       <div className="flex items-center gap-2">
                         <div
                           className="w-2 h-2 rounded-full"
@@ -178,15 +243,34 @@ export default function TripsPage() {
                         <span className="text-sm">{engineer?.name}</span>
                       </div>
                     </TableCell>
-                    <TableCell>{trip.location}</TableCell>
-                    <TableCell className="text-sm">
+                    <TableCell 
+                      className="cursor-pointer"
+                      onClick={() => handleRowClick(trip)}
+                    >
+                      {trip.location}
+                    </TableCell>
+                    <TableCell 
+                      className="text-sm cursor-pointer"
+                      onClick={() => handleRowClick(trip)}
+                    >
                       {format(new Date(trip.startDate), 'MMM d, yyyy')}
                     </TableCell>
-                    <TableCell className="text-sm">
+                    <TableCell 
+                      className="text-sm cursor-pointer"
+                      onClick={() => handleRowClick(trip)}
+                    >
                       {format(new Date(trip.endDate), 'MMM d, yyyy')}
                     </TableCell>
-                    <TableCell>{duration} days</TableCell>
-                    <TableCell>
+                    <TableCell 
+                      className="cursor-pointer"
+                      onClick={() => handleRowClick(trip)}
+                    >
+                      {duration} days
+                    </TableCell>
+                    <TableCell 
+                      className="cursor-pointer"
+                      onClick={() => handleRowClick(trip)}
+                    >
                       <Badge className={statusColors[trip.status]}>
                         {trip.status}
                       </Badge>

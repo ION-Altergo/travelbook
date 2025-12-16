@@ -2,27 +2,34 @@
 
 import { useState } from 'react';
 import { format } from 'date-fns';
-import { Plus, Search, Receipt } from 'lucide-react';
+import { Plus, Search, Trash2, Receipt } from 'lucide-react';
 import { getEngineerById } from '@/lib/data';
 import { useData } from '@/contexts/data-context';
 import { Expense } from '@/types';
-import { ExpenseDialog } from '@/components/expense-dialog';
+import { ExpenseSidebar } from '@/components/expense-sidebar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 export default function ExpensesPage() {
-  const { engineers, trips, expenses, addExpense } = useData();
+  const { engineers, trips, expenses, addExpense, updateExpense, deleteExpense, currentUser } = useData();
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [engineerFilter, setEngineerFilter] = useState<string>('all');
+  const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  // Find engineer matching current user
+  const currentEngineer = engineers.find(e => e.email === currentUser?.email);
 
   // Filter expenses
   const filteredExpenses = expenses.filter((expense) => {
-    const matchesSearch = expense.description.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = expense.description?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = typeFilter === 'all' || expense.type === typeFilter;
     const matchesEngineer = engineerFilter === 'all' || expense.engineerId === engineerFilter;
 
@@ -39,20 +46,85 @@ export default function ExpensesPage() {
     other: 'bg-gray-100 text-gray-700',
   };
 
-  const handleSaveExpense = (expenseData: Partial<Expense>) => {
-    if (expenseData.tripId && expenseData.engineerId && expenseData.type && 
-        expenseData.amount && expenseData.currency && expenseData.date && expenseData.description) {
-      addExpense({
-        tripId: expenseData.tripId,
-        engineerId: expenseData.engineerId,
-        type: expenseData.type,
-        amount: expenseData.amount,
-        currency: expenseData.currency,
-        date: expenseData.date,
-        description: expenseData.description,
-        receipt: expenseData.receipt,
-      });
+  const handleAddExpense = () => {
+    // Create a default expense
+    const defaultExpense: Omit<Expense, 'id'> = {
+      tripId: trips[0]?.id || '',
+      engineerId: currentEngineer?.id || engineers[0]?.id || '',
+      type: 'other',
+      amount: 0,
+      currency: 'EUR',
+      date: new Date(),
+      description: 'New Expense',
+    };
+    
+    // Add it and get the ID
+    const newExpenseId = `expense-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const newExpense: Expense = { ...defaultExpense, id: newExpenseId };
+    
+    addExpense(defaultExpense);
+    
+    // Open sidebar with the new expense
+    setSelectedExpense(newExpense);
+    setIsSidebarOpen(true);
+  };
+
+  const handleRowClick = (expense: Expense) => {
+    setSelectedExpense(expense);
+    setIsSidebarOpen(true);
+  };
+
+  const handleSave = (updatedExpense: Expense) => {
+    updateExpense(updatedExpense.id, updatedExpense);
+  };
+
+  const handleDelete = (expenseId: string) => {
+    deleteExpense(expenseId);
+    setIsSidebarOpen(false);
+    setSelectedIds(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(expenseId);
+      return newSet;
+    });
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedIds(new Set(filteredExpenses.map(e => e.id)));
+    } else {
+      setSelectedIds(new Set());
     }
+  };
+
+  const handleSelectOne = (expenseId: string, checked: boolean) => {
+    setSelectedIds(prev => {
+      const newSet = new Set(prev);
+      if (checked) {
+        newSet.add(expenseId);
+      } else {
+        newSet.delete(expenseId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleDeleteSelected = () => {
+    if (selectedIds.size === 0) return;
+    
+    if (confirm(`Are you sure you want to delete ${selectedIds.size} expense(s)?`)) {
+      selectedIds.forEach(id => deleteExpense(id));
+      setSelectedIds(new Set());
+    }
+  };
+
+  const getCurrencySymbol = (currency: string) => {
+    const symbols: Record<string, string> = {
+      EUR: '€',
+      USD: '$',
+      INR: '₹',
+      GBP: '£',
+    };
+    return symbols[currency] || currency;
   };
 
   return (
@@ -62,20 +134,23 @@ export default function ExpensesPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Expenses</h1>
           <p className="text-muted-foreground">
-            Track travel and on-site expenses
+            {selectedIds.size > 0 
+              ? `${selectedIds.size} expense(s) selected`
+              : 'Track travel and on-site expenses'}
           </p>
         </div>
-        <ExpenseDialog 
-          engineers={engineers} 
-          trips={trips} 
-          onSave={handleSaveExpense}
-          trigger={
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Add Expense
+        <div className="flex gap-2">
+          {selectedIds.size > 0 && (
+            <Button onClick={handleDeleteSelected} variant="destructive">
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete Selected ({selectedIds.size})
             </Button>
-          }
-        />
+          )}
+          <Button onClick={handleAddExpense}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Expense
+          </Button>
+        </div>
       </div>
 
       {/* Filters and Summary */}
@@ -119,8 +194,13 @@ export default function ExpensesPage() {
         </div>
         <Card className="lg:w-[200px]">
           <CardContent className="pt-6">
-            <div className="text-sm text-muted-foreground">Total</div>
-            <div className="text-2xl font-bold">€{totalExpenses.toLocaleString()}</div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Receipt className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium">Total</span>
+              </div>
+              <span className="text-2xl font-bold">€{totalExpenses.toLocaleString()}</span>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -130,6 +210,12 @@ export default function ExpensesPage() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-[50px]">
+                <Checkbox
+                  checked={selectedIds.size === filteredExpenses.length && filteredExpenses.length > 0}
+                  onCheckedChange={handleSelectAll}
+                />
+              </TableHead>
               <TableHead>Date</TableHead>
               <TableHead>Team Member</TableHead>
               <TableHead>Trip</TableHead>
@@ -139,62 +225,93 @@ export default function ExpensesPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredExpenses.map((expense) => {
-              const engineer = getEngineerById(expense.engineerId);
-              const trip = trips.find(t => t.id === expense.tripId);
+            {filteredExpenses.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                  No expenses found. Click "Add Expense" to create one.
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredExpenses.map((expense) => {
+                const engineer = getEngineerById(expense.engineerId);
+                const trip = trips.find(t => t.id === expense.tripId);
 
-              return (
-                <TableRow key={expense.id} className="cursor-pointer hover:bg-muted/50">
-                  <TableCell className="text-sm">
-                    {format(new Date(expense.date), 'MMM d, yyyy')}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="w-2 h-2 rounded-full"
-                        style={{ backgroundColor: engineer?.color }}
+                return (
+                  <TableRow 
+                    key={expense.id} 
+                    className="hover:bg-muted/50"
+                  >
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        checked={selectedIds.has(expense.id)}
+                        onCheckedChange={(checked) => handleSelectOne(expense.id, checked as boolean)}
                       />
-                      <span className="text-sm font-medium">{engineer?.name}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-sm">
-                      <div className="font-medium">{trip?.projectName}</div>
-                      <div className="text-muted-foreground text-xs">{trip?.location}</div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={expenseTypeColors[expense.type]}>
-                      {expense.type}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="max-w-[300px]">
-                    <span className="text-sm truncate">{expense.description}</span>
-                  </TableCell>
-                  <TableCell className="text-right font-medium">
-                    {expense.currency} {expense.amount.toLocaleString()}
-                  </TableCell>
-                </TableRow>
-              );
-            })}
+                    </TableCell>
+                    <TableCell 
+                      className="text-sm cursor-pointer"
+                      onClick={() => handleRowClick(expense)}
+                    >
+                      {format(new Date(expense.date), 'MMM d, yyyy')}
+                    </TableCell>
+                    <TableCell 
+                      className="cursor-pointer"
+                      onClick={() => handleRowClick(expense)}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-2 h-2 rounded-full"
+                          style={{ backgroundColor: engineer?.color }}
+                        />
+                        <span className="text-sm font-medium">{engineer?.name}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell 
+                      className="cursor-pointer"
+                      onClick={() => handleRowClick(expense)}
+                    >
+                      <div className="text-sm">
+                        <div className="font-medium">{trip?.projectName}</div>
+                        <div className="text-muted-foreground text-xs">{trip?.location}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell 
+                      className="cursor-pointer"
+                      onClick={() => handleRowClick(expense)}
+                    >
+                      <Badge className={expenseTypeColors[expense.type]}>
+                        {expense.type}
+                      </Badge>
+                    </TableCell>
+                    <TableCell 
+                      className="cursor-pointer"
+                      onClick={() => handleRowClick(expense)}
+                    >
+                      {expense.description}
+                    </TableCell>
+                    <TableCell 
+                      className="text-right font-medium cursor-pointer"
+                      onClick={() => handleRowClick(expense)}
+                    >
+                      {getCurrencySymbol(expense.currency)}{expense.amount.toLocaleString()}
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            )}
           </TableBody>
         </Table>
       </Card>
 
-      {filteredExpenses.length === 0 && (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Receipt className="h-12 w-12 text-muted-foreground/50 mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No expenses found</h3>
-            <p className="text-muted-foreground text-center">
-              {searchTerm || typeFilter !== 'all' || engineerFilter !== 'all'
-                ? 'Try adjusting your filters'
-                : 'Get started by adding your first expense'}
-            </p>
-          </CardContent>
-        </Card>
-      )}
+      {/* Sidebar */}
+      <ExpenseSidebar
+        expense={selectedExpense}
+        engineers={engineers}
+        trips={trips}
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+        onSave={handleSave}
+        onDelete={handleDelete}
+      />
     </div>
   );
 }
-
