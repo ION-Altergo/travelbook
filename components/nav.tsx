@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Calendar, Users, Plane, FileText, BarChart3 } from 'lucide-react';
+import { Calendar, Users, Plane, FileText, BarChart3, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { UserNav } from './user-nav';
 
@@ -12,6 +12,7 @@ const navigation = [
   { name: 'Team', href: '/engineers', icon: Users },
   { name: 'Expenses', href: '/expenses', icon: FileText },
   { name: 'Reports', href: '/reports', icon: BarChart3 },
+  { name: 'My Profile', href: '/profile', icon: User },
 ];
 
 interface NavProps {

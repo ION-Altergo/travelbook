@@ -21,19 +21,21 @@ import {
   eachDayOfInterval,
   isWithinInterval
 } from 'date-fns';
-import { Trip, Engineer } from '@/types';
+import { Trip, Engineer, Availability, AVAILABILITY_CONFIG } from '@/types';
 import { cn } from '@/lib/utils';
 
 interface AggregatedTimelineProps {
   trips: Trip[];
   engineers: Engineer[];
+  availabilities: Availability[];
   currentDate?: Date;
   aggregationType?: 'week' | 'month' | 'quarter' | 'year';
 }
 
 export function AggregatedTimeline({ 
   trips, 
-  engineers, 
+  engineers,
+  availabilities,
   currentDate = new Date(),
   aggregationType = 'month' 
 }: AggregatedTimelineProps) {
@@ -127,6 +129,24 @@ export function AggregatedTimeline({
     return isWithinInterval(today, { start: periodStart, end: periodEnd });
   };
 
+  // Get availability status for engineer in period
+  const getAvailabilityStatus = (engineerId: string, periodStart: Date, periodEnd: Date) => {
+    const engineerAvails = availabilities.filter(a => a.engineerId === engineerId);
+    
+    // Find any availability that overlaps with this period
+    for (const avail of engineerAvails) {
+      const availStart = new Date(avail.startDate);
+      const availEnd = new Date(avail.endDate);
+      
+      // Check for overlap
+      if (availStart <= periodEnd && availEnd >= periodStart) {
+        return avail.status;
+      }
+    }
+    
+    return null;
+  };
+
   return (
     <div className="w-full overflow-x-auto">
       <div className="min-w-[800px]">
@@ -184,22 +204,37 @@ export function AggregatedTimeline({
               <div className="grid gap-0" style={{ gridTemplateColumns: `repeat(${periods.length}, 1fr)` }}>
                 {periodDays.map((period, index) => {
                   const isCurrent = isCurrentPeriod(period.periodStart, period.periodEnd);
+                  const availStatus = getAvailabilityStatus(engineer.id, period.periodStart, period.periodEnd);
+                  const availConfig = availStatus ? AVAILABILITY_CONFIG[availStatus] : null;
                   
                   return (
                     <div
                       key={index}
                       className={cn(
-                        "flex flex-col items-center justify-center border-r border-b py-3 transition-colors min-h-[60px]",
+                        "flex flex-col items-center justify-center border-r border-b py-3 transition-colors min-h-[60px] relative",
                         period.days > 0 
                           ? "hover:bg-accent/50 cursor-pointer" 
                           : "",
                         isCurrent && "bg-primary/5"
                       )}
                       style={{
-                        backgroundColor: period.days > 0 ? `${engineer.color}10` : undefined,
+                        backgroundColor: availStatus 
+                          ? availConfig?.color + '15'
+                          : period.days > 0 
+                            ? `${engineer.color}10` 
+                            : undefined,
                       }}
-                      title={`${engineer.name}: ${period.days} days\n${format(period.periodStart, 'MMM d')} - ${format(period.periodEnd, 'MMM d, yyyy')}`}
+                      title={`${engineer.name}: ${period.days} days\n${format(period.periodStart, 'MMM d')} - ${format(period.periodEnd, 'MMM d, yyyy')}${availStatus ? `\nStatus: ${availConfig?.label}` : ''}`}
                     >
+                      {/* Availability indicator */}
+                      {availStatus && (
+                        <div
+                          className="absolute top-1 right-1 w-2 h-2 rounded-full"
+                          style={{ backgroundColor: availConfig?.color }}
+                          title={availConfig?.label}
+                        />
+                      )}
+                      
                       {period.days > 0 && (
                         <>
                           <div className="text-xl font-bold" style={{ color: engineer.color }}>

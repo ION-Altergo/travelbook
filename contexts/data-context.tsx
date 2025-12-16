@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode, useMemo } from 'react';
-import { Trip, Expense, Engineer } from '@/types';
+import { Trip, Expense, Engineer, Availability } from '@/types';
 import { 
   engineers as initialEngineers, 
   trips as initialTrips, 
@@ -12,6 +12,7 @@ interface DataContextType {
   engineers: Engineer[];
   trips: Trip[];
   expenses: Expense[];
+  availabilities: Availability[];
   currentUser: {
     email: string;
     name: string;
@@ -25,6 +26,9 @@ interface DataContextType {
   deleteExpense: (id: string) => void;
   addEngineer: (engineer: Omit<Engineer, 'id'>) => void;
   updateEngineer: (id: string, engineer: Partial<Engineer>) => void;
+  addAvailability: (availability: Omit<Availability, 'id'>) => void;
+  updateAvailability: (id: string, availability: Partial<Availability>) => void;
+  deleteAvailability: (id: string) => void;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -83,6 +87,7 @@ export function DataProvider({
   const [engineers, setEngineers] = useState<Engineer[]>(initializeEngineers);
   const [trips, setTrips] = useState<Trip[]>(initialTrips);
   const [expenses, setExpenses] = useState<Expense[]>(initialExpenses);
+  const [availabilities, setAvailabilities] = useState<Availability[]>([]);
 
   const addTrip = (trip: Omit<Trip, 'id'>) => {
     const newTrip: Trip = {
@@ -134,12 +139,31 @@ export function DataProvider({
     ));
   };
 
+  const addAvailability = (availability: Omit<Availability, 'id'>) => {
+    const newAvailability: Availability = {
+      ...availability,
+      id: `avail-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    };
+    setAvailabilities(prev => [...prev, newAvailability]);
+  };
+
+  const updateAvailability = (id: string, updatedAvailability: Partial<Availability>) => {
+    setAvailabilities(prev => prev.map(avail => 
+      avail.id === id ? { ...avail, ...updatedAvailability } : avail
+    ));
+  };
+
+  const deleteAvailability = (id: string) => {
+    setAvailabilities(prev => prev.filter(avail => avail.id !== id));
+  };
+
   return (
     <DataContext.Provider
       value={{
         engineers,
         trips,
         expenses,
+        availabilities,
         currentUser,
         addTrip,
         updateTrip,
@@ -149,6 +173,9 @@ export function DataProvider({
         deleteExpense,
         addEngineer,
         updateEngineer,
+        addAvailability,
+        updateAvailability,
+        deleteAvailability,
       }}
     >
       {children}

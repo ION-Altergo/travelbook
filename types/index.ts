@@ -52,3 +52,47 @@ export interface DashboardStats {
   upcomingTrips: number;
 }
 
+export type AvailabilityStatus = 
+  | 'available'
+  | 'on-break'
+  | 'flexible'
+  | 'cannot-travel'
+  | 'limited-availability';
+
+export interface Availability {
+  id: string;
+  engineerId: string;
+  status: AvailabilityStatus;
+  startDate: Date;
+  endDate: Date;
+  notes?: string;
+}
+
+export const AVAILABILITY_CONFIG: Record<AvailabilityStatus, { label: string; color: string; bgColor: string }> = {
+  'available': {
+    label: 'Available',
+    color: '#10b981',
+    bgColor: 'bg-green-100/50',
+  },
+  'on-break': {
+    label: 'On Break',
+    color: '#ef4444',
+    bgColor: 'bg-red-100/50',
+  },
+  'flexible': {
+    label: 'Flexible for Travel',
+    color: '#3b82f6',
+    bgColor: 'bg-blue-100/50',
+  },
+  'cannot-travel': {
+    label: 'Cannot Travel',
+    color: '#dc2626',
+    bgColor: 'bg-red-200/50',
+  },
+  'limited-availability': {
+    label: 'Limited Availability',
+    color: '#f59e0b',
+    bgColor: 'bg-amber-100/50',
+  },
+};
+

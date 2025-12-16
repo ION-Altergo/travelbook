@@ -17,7 +17,7 @@ import { useData } from '@/contexts/data-context';
 type TimelineView = 'day' | 'week' | 'month' | 'quarter' | 'year';
 
 export default function Home() {
-  const { engineers, trips, expenses } = useData();
+  const { engineers, trips, expenses, availabilities } = useData();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [timelineView, setTimelineView] = useState<TimelineView>('month');
   const [showAggregated, setShowAggregated] = useState(true);
@@ -176,6 +176,7 @@ export default function Home() {
             <AggregatedTimeline
               trips={trips}
               engineers={engineers}
+              availabilities={availabilities}
               currentDate={currentDate}
               aggregationType={timelineView === 'week' || timelineView === 'month' || timelineView === 'quarter' || timelineView === 'year' ? timelineView : 'month'}
             />
