@@ -14,12 +14,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 export default function TripsPage() {
-  const { engineers, trips, addTrip, updateTrip, deleteTrip } = useData();
+  const { engineers, trips, addTrip, updateTrip, deleteTrip, currentUser } = useData();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [engineerFilter, setEngineerFilter] = useState<string>('all');
   const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  // Find engineer matching current user
+  const currentEngineer = engineers.find(e => e.email === currentUser?.email);
 
   // Filter trips
   const filteredTrips = trips.filter((trip) => {
@@ -42,9 +45,9 @@ export default function TripsPage() {
   };
 
   const handleAddTrip = () => {
-    // Create a default trip
+    // Create a default trip with current user as engineer
     const defaultTrip: Omit<Trip, 'id'> = {
-      engineerId: engineers[0]?.id || '',
+      engineerId: currentEngineer?.id || engineers[0]?.id || '',
       projectName: 'New Trip',
       location: 'Location',
       startDate: new Date(),
@@ -120,10 +123,10 @@ export default function TripsPage() {
         </Select>
         <Select value={engineerFilter} onValueChange={setEngineerFilter}>
           <SelectTrigger className="w-full sm:w-[200px]">
-            <SelectValue placeholder="Engineer" />
+            <SelectValue placeholder="Team Member" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Engineers</SelectItem>
+            <SelectItem value="all">All Team Members</SelectItem>
             {engineers.map((engineer) => (
               <SelectItem key={engineer.id} value={engineer.id}>
                 {engineer.name}
@@ -139,7 +142,7 @@ export default function TripsPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Project</TableHead>
-              <TableHead>Engineer</TableHead>
+              <TableHead>Team Member</TableHead>
               <TableHead>Location</TableHead>
               <TableHead>Start Date</TableHead>
               <TableHead>End Date</TableHead>

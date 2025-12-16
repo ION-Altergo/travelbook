@@ -63,13 +63,13 @@ export function TripSidebar({ trip, engineers, isOpen, onClose, onSave, onDelete
         {/* Form */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="engineer">Engineer</Label>
+            <Label htmlFor="engineer">Team Member</Label>
             <Select
               value={formData.engineerId}
               onValueChange={(value) => setFormData({ ...formData, engineerId: value })}
             >
               <SelectTrigger id="engineer">
-                <SelectValue placeholder="Select engineer" />
+                <SelectValue placeholder="Select team member" />
               </SelectTrigger>
               <SelectContent>
                 {engineers.map((engineer) => (

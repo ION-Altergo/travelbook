@@ -113,10 +113,10 @@ export default function ReportsPage() {
         </Select>
         <Select value={selectedEngineerId} onValueChange={setSelectedEngineerId}>
           <SelectTrigger className="w-full sm:w-[200px]">
-            <SelectValue placeholder="Engineer" />
+            <SelectValue placeholder="Team Member" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Engineers</SelectItem>
+            <SelectItem value="all">All Team Members</SelectItem>
             {engineers.map((engineer) => (
               <SelectItem key={engineer.id} value={engineer.id}>
                 {engineer.name}
@@ -164,22 +164,22 @@ export default function ReportsPage() {
       {/* Detailed Reports */}
       <Tabs defaultValue="engineer" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="engineer">By Engineer</TabsTrigger>
+          <TabsTrigger value="engineer">By Team Member</TabsTrigger>
           <TabsTrigger value="expenses">Expense Breakdown</TabsTrigger>
           <TabsTrigger value="trips">Trip Details</TabsTrigger>
         </TabsList>
 
-        {/* Engineer Breakdown */}
+        {/* Team Member Breakdown */}
         <TabsContent value="engineer">
           <Card>
             <CardHeader>
-              <CardTitle>Engineer Breakdown</CardTitle>
+              <CardTitle>Team Member Breakdown</CardTitle>
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Engineer</TableHead>
+                    <TableHead>Team Member</TableHead>
                     <TableHead className="text-right">Trips</TableHead>
                     <TableHead className="text-right">Days</TableHead>
                     <TableHead className="text-right">Expenses</TableHead>
@@ -260,7 +260,7 @@ export default function ReportsPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Project</TableHead>
-                    <TableHead>Engineer</TableHead>
+                    <TableHead>Team Member</TableHead>
                     <TableHead>Location</TableHead>
                     <TableHead>Duration</TableHead>
                     <TableHead>Dates</TableHead>

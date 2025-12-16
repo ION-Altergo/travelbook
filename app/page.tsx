@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import { format, addMonths, subMonths, addWeeks, subWeeks, addQuarters, subQuarters } from 'date-fns';
+import { format, addMonths, subMonths, addWeeks, subWeeks, addQuarters, subQuarters, addYears, subYears } from 'date-fns';
 import { Calendar, Users, Plane, Euro, ChevronLeft, ChevronRight } from 'lucide-react';
 import { StatsCard } from '@/components/stats-card';
 import { TimelineView } from '@/components/timeline-view';
@@ -30,8 +30,10 @@ export default function Home() {
       setCurrentDate(subWeeks(currentDate, 1));
     } else if (timelineView === 'month') {
       setCurrentDate(subMonths(currentDate, 1));
-    } else {
+    } else if (timelineView === 'quarter') {
       setCurrentDate(subQuarters(currentDate, 1));
+    } else {
+      setCurrentDate(subYears(currentDate, 1));
     }
   };
 
@@ -42,8 +44,10 @@ export default function Home() {
       setCurrentDate(addWeeks(currentDate, 1));
     } else if (timelineView === 'month') {
       setCurrentDate(addMonths(currentDate, 1));
-    } else {
+    } else if (timelineView === 'quarter') {
       setCurrentDate(addQuarters(currentDate, 1));
+    } else {
+      setCurrentDate(addYears(currentDate, 1));
     }
   };
 
@@ -95,10 +99,10 @@ export default function Home() {
           description="Currently ongoing"
         />
         <StatsCard
-          title="Engineers"
+          title="Team Members"
           value={engineers.length}
           icon={Users}
-          description="Total engineers"
+          description="Total team members"
         />
         <StatsCard
           title="Total Expenses"
@@ -132,7 +136,7 @@ export default function Home() {
                   <SelectItem value="year">Year</SelectItem>
                 </SelectContent>
               </Select>
-              {(timelineView === 'day' || !showAggregated) && (
+              {(timelineView === 'day' || timelineView === 'year' || !showAggregated) && (
                 <>
                   <Button
                     variant="outline"
@@ -166,14 +170,14 @@ export default function Home() {
               trips={trips}
               engineers={engineers}
               currentDate={currentDate}
-              viewType={timelineView === 'day' || timelineView === 'year' ? 'month' : timelineView}
+              viewType={timelineView === 'day' ? 'month' : (timelineView as 'week' | 'month' | 'quarter' | 'year')}
             />
           ) : (
             <AggregatedTimeline
               trips={trips}
               engineers={engineers}
               currentDate={currentDate}
-              aggregationType={timelineView}
+              aggregationType={timelineView === 'week' || timelineView === 'month' || timelineView === 'quarter' || timelineView === 'year' ? timelineView : 'month'}
             />
           )}
         </CardContent>

@@ -4,6 +4,12 @@ A modern, lean web application for managing on-site engineering trips, tracking 
 
 ## ✨ Features
 
+### 🔐 Authentication & Teams
+- **Google OAuth**: Secure login with company Google accounts
+- **Team Management**: Automatic team assignment based on email domain
+- **Smart Defaults**: Current user auto-selected when creating trips
+- **Team Filtering**: Only see engineers and data from your organization
+
 ### 📊 Dashboard
 - **Visual Timeline**: Month-by-month visualization of engineer assignments
 - **Quick Stats**: Overview of trips, active engineers, and expenses
@@ -40,6 +46,7 @@ A modern, lean web application for managing on-site engineering trips, tracking 
 ### Prerequisites
 - Node.js 18+ 
 - npm or yarn
+- Google Cloud account (for OAuth)
 
 ### Installation
 
@@ -48,17 +55,26 @@ A modern, lean web application for managing on-site engineering trips, tracking 
 npm install
 ```
 
-2. Run the development server:
+2. Set up Google Authentication:
+   - See `AUTH_SETUP.md` for detailed instructions
+   - Create `.env.local` with Google OAuth credentials
+   - Configure redirect URIs in Google Cloud Console
+
+3. Run the development server:
 ```bash
 npm run dev
 ```
 
-3. Open [http://localhost:3000](http://localhost:3000) in your browser
+4. Open [http://localhost:3001](http://localhost:3001) in your browser
+5. Sign in with your company Google account
+
+> **Note**: Authentication is required. Without proper setup, you'll be redirected to the login page.
 
 ## 🛠️ Technology Stack
 
 - **Framework**: Next.js 15 (App Router)
 - **Language**: TypeScript
+- **Authentication**: NextAuth.js v5 with Google OAuth
 - **Styling**: Tailwind CSS
 - **UI Components**: shadcn/UI
 - **Icons**: Lucide React
@@ -99,12 +115,19 @@ The application follows a **Linear-inspired** design approach:
 
 ## 🔄 Data Flow
 
-Currently, the application uses in-memory data stored in `lib/data.ts`. To connect to a real database:
+The application uses:
+- **Authentication**: NextAuth.js with Google OAuth for secure login
+- **State Management**: React Context API for global state
+- **Data Storage**: In-memory data (currently in `lib/data.ts`)
+- **Team Filtering**: Automatic filtering by email domain
 
-1. Choose your database (PostgreSQL, MongoDB, etc.)
+To connect to a real database:
+
+1. Choose your database (PostgreSQL, MongoDB, Supabase, etc.)
 2. Replace the data functions in `lib/data.ts` with API calls
 3. Add API routes in `app/api/`
-4. Implement proper authentication
+4. Store users, trips, and expenses in the database
+5. Implement team/organization models
 
 ## 📝 Sample Data
 
@@ -118,7 +141,8 @@ This makes it easy to explore features immediately.
 ## 🚧 Future Enhancements
 
 - [ ] Real database integration (PostgreSQL/Supabase)
-- [ ] User authentication & authorization
+- [x] User authentication & authorization (Google OAuth)
+- [x] Team management by email domain
 - [ ] PDF/Excel report export
 - [ ] File upload for expense receipts
 - [ ] Email notifications for trip reminders

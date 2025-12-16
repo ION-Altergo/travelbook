@@ -18,13 +18,13 @@ export default function EngineersPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Engineers</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Team Members</h1>
         <p className="text-muted-foreground">
-          Engineering team overview and statistics
+          Team overview and statistics
         </p>
       </div>
 
-      {/* Engineers Grid */}
+      {/* Team Members Grid */}
       <div className="grid gap-6 md:grid-cols-2">
         {engineers.map((engineer) => {
           const engineerTrips = trips.filter(t => t.engineerId === engineer.id);

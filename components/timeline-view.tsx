@@ -10,6 +10,8 @@ import {
   endOfMonth, 
   startOfQuarter,
   endOfQuarter,
+  startOfYear,
+  endOfYear,
   isSameDay 
 } from 'date-fns';
 import { Trip, Engineer } from '@/types';
@@ -20,7 +22,7 @@ interface TimelineViewProps {
   trips: Trip[];
   engineers: Engineer[];
   currentDate?: Date;
-  viewType?: 'week' | 'month' | 'quarter';
+  viewType?: 'week' | 'month' | 'quarter' | 'year';
 }
 
 export function TimelineView({ 
@@ -43,10 +45,15 @@ export function TimelineView({
       start = startOfMonth(currentDate);
       end = endOfMonth(currentDate);
       label = format(currentDate, 'MMMM yyyy');
-    } else {
+    } else if (viewType === 'quarter') {
       start = startOfQuarter(currentDate);
       end = endOfQuarter(currentDate);
       label = `Q${Math.floor(currentDate.getMonth() / 3) + 1} ${format(currentDate, 'yyyy')}`;
+    } else {
+      // year
+      start = startOfYear(currentDate);
+      end = endOfYear(currentDate);
+      label = format(currentDate, 'yyyy');
     }
 
     const daysArray = eachDayOfInterval({ start, end });
