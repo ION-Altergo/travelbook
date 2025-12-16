@@ -166,7 +166,7 @@ export default function Home() {
               trips={trips}
               engineers={engineers}
               currentDate={currentDate}
-              viewType={timelineView === 'day' ? 'month' : timelineView}
+              viewType={timelineView === 'day' || timelineView === 'year' ? 'month' : timelineView}
             />
           ) : (
             <AggregatedTimeline
