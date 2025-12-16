@@ -34,7 +34,7 @@ export default async function RootLayout({
       >
         <DataProvider session={session}>
           <NavWrapper />
-          <main className="container mx-auto pt-20 pb-8">
+          <main className="container mx-auto pt-20 pb-8 px-4 sm:px-6 lg:px-8">
             {children}
           </main>
         </DataProvider>

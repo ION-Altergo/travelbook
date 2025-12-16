@@ -45,12 +45,20 @@ export function TripSidebar({ trip, engineers, isOpen, onClose, onSave, onDelete
   };
 
   return (
-    <div
-      className={cn(
-        "fixed right-0 top-0 h-full w-[400px] bg-background border-l shadow-lg z-50 transition-transform duration-300",
-        isOpen ? "translate-x-0" : "translate-x-full"
+    <>
+      {/* Overlay for mobile */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          onClick={onClose}
+        />
       )}
-    >
+      <div
+        className={cn(
+          "fixed right-0 top-0 h-full w-full sm:w-[400px] bg-background border-l shadow-lg z-50 transition-transform duration-300",
+          isOpen ? "translate-x-0" : "translate-x-full"
+        )}
+      >
       <div className="flex flex-col h-full">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b">
@@ -193,6 +201,7 @@ export function TripSidebar({ trip, engineers, isOpen, onClose, onSave, onDelete
         </div>
       </div>
     </div>
+    </>
   );
 }
 

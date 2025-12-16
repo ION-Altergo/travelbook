@@ -5,8 +5,8 @@ import { Plane } from 'lucide-react';
 
 export default function LoginPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/30">
-      <Card className="w-[400px]">
+    <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4">
+      <Card className="w-full max-w-[400px]">
         <CardHeader className="space-y-4">
           <div className="flex items-center justify-center">
             <div className="flex items-center space-x-2">

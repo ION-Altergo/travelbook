@@ -175,7 +175,7 @@ export default function ReportsPage() {
             <CardHeader>
               <CardTitle>Team Member Breakdown</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -255,7 +255,7 @@ export default function ReportsPage() {
             <CardHeader>
               <CardTitle>Trip Details</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>

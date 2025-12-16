@@ -105,10 +105,10 @@ export default function ExpensesPage() {
           </Select>
           <Select value={engineerFilter} onValueChange={setEngineerFilter}>
             <SelectTrigger className="w-full sm:w-[200px]">
-              <SelectValue placeholder="Engineer" />
+              <SelectValue placeholder="Team Member" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Engineers</SelectItem>
+              <SelectItem value="all">All Team Members</SelectItem>
               {engineers.map((engineer) => (
                 <SelectItem key={engineer.id} value={engineer.id}>
                   {engineer.name}
@@ -126,12 +126,12 @@ export default function ExpensesPage() {
       </div>
 
       {/* Expenses Table */}
-      <Card>
+      <Card className="overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Date</TableHead>
-              <TableHead>Engineer</TableHead>
+              <TableHead>Team Member</TableHead>
               <TableHead>Trip</TableHead>
               <TableHead>Type</TableHead>
               <TableHead>Description</TableHead>
