@@ -10,6 +10,7 @@ import { TripSidebar } from '@/components/trip-sidebar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -183,7 +184,7 @@ export default function TripsPage() {
       </div>
 
       {/* Table */}
-      <div className="border rounded-lg overflow-x-auto">
+      <Card className="overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
@@ -240,7 +241,7 @@ export default function TripsPage() {
                           className="w-2 h-2 rounded-full"
                           style={{ backgroundColor: engineer?.color }}
                         />
-                        <span className="text-sm">{engineer?.name}</span>
+                        <span className="text-sm font-medium">{engineer?.name}</span>
                       </div>
                     </TableCell>
                     <TableCell 
@@ -281,7 +282,7 @@ export default function TripsPage() {
             )}
           </TableBody>
         </Table>
-      </div>
+      </Card>
 
       {/* Sidebar */}
       <TripSidebar
