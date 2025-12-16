@@ -193,15 +193,34 @@ export function TimelineView({
                     className="absolute inset-0 grid"
                     style={{ gridTemplateColumns: `repeat(${days.length}, 1fr)` }}
                   >
-                    {days.map((day, index) => (
-                      <div 
-                        key={index} 
-                        className={cn(
-                          "border-r last:border-r-0 border-border/40",
-                          isSameDay(day, new Date()) && "bg-primary/5"
-                        )} 
-                      />
-                    ))}
+                    {days.map((day, index) => {
+                      const availStatus = getAvailabilityForDate(engineer.id, day);
+                      const availConfig = availStatus ? AVAILABILITY_CONFIG[availStatus] : null;
+                      
+                      return (
+                        <div 
+                          key={index} 
+                          className={cn(
+                            "border-r last:border-r-0 border-border/40 relative",
+                            isSameDay(day, new Date()) && !availStatus && "bg-primary/5"
+                          )}
+                          style={{
+                            backgroundColor: availConfig 
+                              ? `${availConfig.color}15`
+                              : undefined
+                          }}
+                          title={availConfig ? availConfig.label : undefined}
+                        >
+                          {/* Availability indicator dot */}
+                          {availStatus && (
+                            <div
+                              className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full"
+                              style={{ backgroundColor: availConfig?.color }}
+                            />
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
 
                   {/* Trip bars */}
